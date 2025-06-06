@@ -1,0 +1,97 @@
+from tkinter import *
+
+# Création de la fenêtre principale
+fenetre = Tk()
+fenetre.title("Jeu de la Vie")
+
+# Taille de l'écran
+largeur_ecran = fenetre.winfo_screenwidth()
+hauteur_ecran = fenetre.winfo_screenheight()
+
+# Demande de la taille de la grille
+n = int(input("Nombre de lignes: "))
+m = int(input("Nombre de colonnes: "))
+
+# Calcul de la taille optimale des cases
+taille_case = min(largeur_ecran // m, hauteur_ecran // n)
+
+# Création du Frame pour les boutons (placé en haut)
+frame_boutons = Frame(fenetre)
+frame_boutons.pack(fill="x", side="top")
+
+# Création du Canvas pour dessiner la grille (placé en dessous)
+canvas = Canvas(fenetre, width=m * taille_case, height=n * taille_case, bg="black")
+canvas.pack(expand=True, fill="both")
+
+# Initialisation des grilles
+etats = [[0 for _ in range(m)] for _ in range(n)]
+rectangles = [[None for _ in range(m)] for _ in range(n)]
+
+# Fonction pour changer l'état d'une cellule
+def changer_couleur(event):
+    x, y = event.x // taille_case, event.y // taille_case
+    if 0 <= x < m and 0 <= y < n:
+        etats[y][x] = 1 - etats[y][x]
+        couleur = "white" if etats[y][x] else "black"
+        canvas.itemconfig(rectangles[y][x], fill=couleur)
+
+# Fonction pour compter les voisins vivants
+def compter_voisins(x, y):
+    voisins = [
+        (-1, -1), (-1, 0), (-1, 1),
+        (0, -1),         (0, 1),
+        (1, -1), (1, 0), (1, 1)
+    ]
+    return sum(etats[y + dy][x + dx] for dx, dy in voisins if 0 <= x + dx < m and 0 <= y + dy < n)
+
+# Fonction pour appliquer les règles du jeu
+def principe():
+    global etats
+    nouveaux_etats = [[0 for _ in range(m)] for _ in range(n)]
+
+    for y in range(n):
+        for x in range(m):
+            voisins = compter_voisins(x, y)
+            if etats[y][x] == 1 and voisins in (2, 3):
+                nouveaux_etats[y][x] = 1
+            elif etats[y][x] == 0 and voisins == 3:
+                nouveaux_etats[y][x] = 1
+
+    etats = [row[:] for row in nouveaux_etats]
+
+    for y in range(n):
+        for x in range(m):
+            couleur = "white" if etats[y][x] == 1 else "black"
+            canvas.itemconfig(rectangles[y][x], fill=couleur)
+
+# Fonction pour réinitialiser la grille
+def reset():
+    global etats
+    etats = [[0 for _ in range(m)] for _ in range(n)]
+    for y in range(n):
+        for x in range(m):
+            canvas.itemconfig(rectangles[y][x], fill="black")
+
+# Création des cellules (rectangles sur le Canvas)
+for y in range(n):
+    for x in range(m):
+        rect = canvas.create_rectangle(
+            x * taille_case, y * taille_case,
+            (x + 1) * taille_case, (y + 1) * taille_case,
+            fill="black", outline="gray"
+        )
+        rectangles[y][x] = rect
+
+# Ajout du clic pour changer la couleur
+canvas.bind("<Button-1>", changer_couleur)
+
+# Bouton pour avancer d'un tour
+Button(frame_boutons, text="Tour suivant", command=principe).pack(side=LEFT, expand=True, fill="x")
+
+# Bouton de réinitialisation
+Button(frame_boutons, text="Réinitialiser", command=reset).pack(side=RIGHT, expand=True, fill="x")
+
+# Mode plein écran
+fenetre.attributes('-fullscreen', True)
+
+fenetre.mainloop()
